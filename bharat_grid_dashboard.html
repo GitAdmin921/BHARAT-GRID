@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BHARAT-GRID // AI Smart Grid Anti-Theft & Vigilance Command</title>
+<style>
+  :root {
+    --bg: #030712;
+    --panel: rgba(9, 17, 36, 0.92);
+    --cyan: #00f3ff;
+    --saffron: #ff9933;
+    --green: #00ff88;
+    --purple: #b537f2;
+    --red: #ff1e56;
+    --border: rgba(0, 243, 255, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(0, 243, 255, 0.12), transparent 55%),
+      linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 26px 26px, 26px 26px;
+    color: #e2e8f0;
+    font-family: 'Consolas', 'Courier New', monospace;
+    padding: 12px;
+    min-height: 100vh;
+  }
+
+  /* Top Navigation & Role Switcher */
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+    padding: 12px 18px; border: 1px solid var(--border);
+    background: var(--panel); border-radius: 10px;
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.12);
+    margin-bottom: 12px;
+  }
+  .brand { font-size: 1.3rem; font-weight: 900; color: var(--cyan); letter-spacing: 2px; }
+  .brand .tricolor { background: linear-gradient(90deg, #ff9933, #ffffff, #138808); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .brand span { color: #94a3b8; font-size: 0.72rem; display: block; margin-top: 2px; letter-spacing: 1px; font-weight: normal; }
+
+  .nav-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tab-btn {
+    font-size: 0.75rem; font-weight: 700;
+    padding: 8px 14px; border-radius: 6px; border: 1px solid #334155;
+    background: rgba(15, 23, 42, 0.85); color: #94a3b8; cursor: pointer; transition: 0.2s;
+  }
+  .tab-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0, 243, 255, 0.14); box-shadow: 0 0 12px rgba(0, 243, 255, 0.25); }
+
+  .status-pill {
+    font-weight: 700; padding: 8px 16px;
+    border-radius: 6px; letter-spacing: 1.2px; font-size: 0.82rem;
+    border: 1px solid var(--green); color: var(--green);
+    background: rgba(0, 255, 136, 0.1);
+  }
+  .status-pill.danger {
+    border-color: var(--red); color: #fff; background: var(--red);
+    box-shadow: 0 0 25px var(--red); animation: blinkAlert 0.55s infinite alternate;
+  }
+  @keyframes blinkAlert { from { opacity: 1; } to { opacity: 0.55; } }
+
+  /* Live Hardware Conduit Bridge (Part 2 -> Tap Zone -> Part 1) */
+  .conduit {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 18px; margin-bottom: 12px;
+  }
+  .hw-box {
+    border: 1px solid var(--cyan); padding: 8px 14px; border-radius: 8px;
+    background: rgba(0, 243, 255, 0.05); text-align: center; min-width: 210px;
+  }
+  .hw-box h4 { font-size: 0.82rem; color: var(--cyan); letter-spacing: 1px; }
+  .hw-box p { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; }
+  .hw-box.tripped { border-color: var(--red); background: rgba(255, 30, 86, 0.18); }
+  .hw-box.tripped h4 { color: var(--red); }
+
+  .wire { flex: 1; height: 5px; background: #1e293b; margin: 0 12px; position: relative; border-radius: 3px; overflow: hidden; }
+  .pulse { position: absolute; top: 0; left: -30%; width: 30%; height: 100%; background: linear-gradient(90deg, transparent, var(--green), transparent); animation: flow 1s linear infinite; }
+  .wire.severed .pulse { background: var(--red); width: 100%; left: 0; animation: blinkAlert 0.35s infinite; }
+  @keyframes flow { 100% { left: 100%; } }
+
+  /* Views Container */
+  .view-section { display: none; }
+  .view-section.active { display: grid; grid-template-columns: 330px 1fr 310px; gap: 12px; }
+  @media(max-width: 1080px) { .view-section.active { grid-template-columns: 1fr; } }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; position: relative; }
+  .card-hdr { font-size: 0.78rem; font-weight: bold; color: var(--cyan); letter-spacing: 1.2px; margin-bottom: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(0,243,255,0.12); padding-bottom: 6px; }
+
+  /* Interactive India Grid Map */
+  .map-container {
+    position: relative; width: 100%; height: 265px; border-radius: 8px;
+    background: radial-gradient(circle at 42% 52%, rgba(0, 243, 255, 0.12), #020617 75%);
+    border: 1px solid #1e293b; overflow: hidden;
+  }
+  .india-svg { width: 100%; height: 100%; opacity: 0.9; }
+  .city-pin {
+    position: absolute; transform: translate(-50%, -50%); cursor: pointer;
+    font-size: 0.65rem; font-weight: 700; padding: 3px 6px; border-radius: 4px;
+    background: rgba(2, 6, 18, 0.92); border: 1px solid var(--green); color: var(--green);
+  }
+  .city-pin.active-zone { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
+  .city-pin.theft-zone { border-color: #fff; background: var(--red); color: #fff; box-shadow: 0 0 20px var(--red); animation: blinkAlert 0.4s infinite; }
+
+  /* 360 Tactical Radar */
+  .radar-box {
+    position: relative; width: 225px; height: 225px; margin: 6px auto;
+    border-radius: 50%; border: 2px solid rgba(0, 243, 255, 0.45);
+    background: radial-gradient(circle, rgba(0, 243, 255, 0.1), #020617 75%);
+    overflow: hidden;
+  }
+  .radar-box.danger { border-color: var(--red); box-shadow: 0 0 28px rgba(255, 30, 86, 0.45); }
+  .r-ring { position: absolute; border: 1px dashed rgba(0, 243, 255, 0.25); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  .r-cross-h { position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(0, 243, 255, 0.18); }
+  .r-cross-v { position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: rgba(0, 243, 255, 0.18); }
+  .r-sweep { position: absolute; width: 50%; height: 50%; top: 0; left: 50%; transform-origin: bottom left; background: conic-gradient(from 0deg, rgba(0, 243, 255, 0.45), transparent 65%); animation: spin 2.4s linear infinite; }
+  .radar-box.danger .r-sweep { background: conic-gradient(from 0deg, rgba(255, 30, 86, 0.65), transparent 65%); }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  .blip { position: absolute; font-size: 0.62rem; font-weight: 700; padding: 2px 5px; border-radius: 3px; background: #020617; border: 1px solid var(--green); color: var(--green); }
+  .blip.threat { background: var(--red); color: #fff; border-color: #fff; animation: blinkAlert 0.4s infinite; }
+
+  /* Oscilloscope */
+  canvas { width: 100%; height: 175px; background: #020617; border: 1px solid #1e293b; border-radius: 8px; }
+  .legend { display: flex; gap: 14px; font-size: 0.72rem; margin-top: 6px; flex-wrap: wrap; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+  .stat-box { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; padding: 9px 11px; border-radius: 8px; }
+  .stat-lbl { font-size: 0.68rem; color: #94a3b8; }
+  .stat-num { font-size: 1.25rem; font-weight: 700; margin-top: 2px; color: #fff; }
+
+  /* Private Profile & DISCOM Cards */
+  .profile-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 0.76rem; }
+  .profile-row span:first-child { color: #94a3b8; }
+  .profile-row span:last-child { color: #fff; font-weight: 700; }
+
+  .alert-box {
+    display: none; margin-top: 10px; padding: 10px; border-radius: 8px;
+    background: rgba(255, 30, 86, 0.18); border: 1px solid var(--red); font-size: 0.73rem;
+  }
+  .alert-box.active { display: block; animation: blinkAlert 0.8s infinite alternate; }
+
+  /* Terminal & Controls */
+  .terminal { height: 135px; overflow-y: auto; background: #020617; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; font-size: 0.7rem; color: var(--green); line-height: 1.5; }
+  .terminal .err { color: var(--red); font-weight: bold; }
+  .ctrl-group { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+  input { background: #020617; border: 1px solid var(--cyan); color: #fff; padding: 8px; border-radius: 6px; text-align: center; letter-spacing: 2px; font-size: 0.8rem; font-weight: bold; }
+  button.act { font-weight: 700; font-size: 0.74rem; padding: 9px; border: none; border-radius: 6px; cursor: pointer; letter-spacing: 1px; transition: 0.2s; }
+  .btn-ok { background: var(--green); color: #022c22; }
+  .btn-ok:hover { box-shadow: 0 0 15px var(--green); }
+  .btn-warn { background: rgba(255, 153, 51, 0.16); border: 1px solid var(--saffron); color: var(--saffron); }
+  .btn-warn:hover { background: var(--saffron); color: #000; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <span class="tricolor" style="display:inline;font-size:1.3rem;">BHARAT-GRID</span> // AI SENTINEL
+    <span>NATIONAL SMART GRID ANTI-THEFT & PRIVATE CONSUMER SHIELD (INDIA)</span>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchView('command', this)">⚡ GRID COMMAND & RADAR</button>
+    <button class="tab-btn" onclick="switchView('profile', this)">🏠 PRIVATE CONSUMER PROFILE</button>
+    <button class="tab-btn" onclick="switchView('india', this)">🇮🇳 INDIA DISCOM MAP</button>
+  </div>
+
+  <div id="sysStatus" class="status-pill">● GRID ARMED & SECURE</div>
+</div>
+
+<!-- Animated Hardware Conduit Bridge (Part 2 -> Tap Zone -> Part 1) -->
+<div class="conduit">
+  <div id="nodeSrc" class="hw-box">
+    <h4>PART 2: ELECTRIC SOURCE</h4>
+    <p id="srcSub">FEEDER TX-GJ01 [230V ONLINE]</p>
+  </div>
+  <div id="wire1" class="wire"><div class="pulse"></div></div>
+  <div id="nodeTap" class="hw-box" style="border-color: var(--saffron);">
+    <h4 style="color:var(--saffron);">TAP / POLE SENSOR NODE</h4>
+    <p id="tapSub">POLE-GJ-101 DIFFERENTIAL AI</p>
+  </div>
+  <div id="wire2" class="wire"><div class="pulse"></div></div>
+  <div id="nodeMtr" class="hw-box">
+    <h4>PART 1: SMART METER BOX</h4>
+    <p id="mtrSub">CONSUMER GJ-8849 [ONLINE]</p>
+  </div>
+</div>
+
+<!-- TAB 1: GRID COMMAND & RADAR -->
+<div id="view-command" class="view-section active">
+  <div class="card">
+    <div class="card-hdr"><span>360° TACTICAL POLE RADAR</span><span>VADODARA SECTOR</span></div>
+    <div id="radarBox" class="radar-box">
+      <div class="r-ring" style="width:75px;height:75px;"></div>
+      <div class="r-ring" style="width:150px;height:150px;"></div>
+      <div class="r-cross-h"></div><div class="r-cross-v"></div>
+      <div class="r-sweep"></div>
+      <div id="b-src" class="blip" style="top:28px; left:24px;">PART-2: TX01</div>
+      <div id="b-tap" class="blip" style="top:100px; left:72px;">POLE-GJ-101</div>
+      <div id="b-mtr" class="blip" style="bottom:30px; right:22px;">PART-1: MTR</div>
+    </div>
+    <div class="stat-box" style="margin-top:8px;">
+      <div class="stat-lbl">AI ANOMALY & SEC-135 AUDIT</div>
+      <div id="aiConf" class="stat-num" style="color:var(--cyan); font-size:1.05rem;">99.8% BALANCED</div>
+    </div>
+    <div id="alertBanner" class="alert-box">
+      <strong style="color:var(--red);">🚨 DUAL ALERT SENT (DISCOM + OWNER):</strong>
+      <p id="alertText" style="margin-top:4px; color:#fff;">Tap detected at POLE-GJ-101. Supply isolated.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><span>REAL-TIME DIFFERENTIAL OSCILLOSCOPE</span><span id="hwLinkTag">ESP32 / DEMO READY</span></div>
+    <canvas id="waveCanvas" width="520" height="175"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--cyan);"></i>Part 2: Source Output (A)</span>
+      <span><i class="dot" style="background:var(--purple);"></i>Part 1: Meter Billed (A)</span>
+      <span><i class="dot" style="background:var(--red);"></i>Stolen Differential (A)</span>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-lbl">PART 2: SOURCE OUTPUT</div><div id="valSrc" class="stat-num" style="color:var(--cyan);">0.85 A</div></div>
+      <div class="stat-box"><div class="stat-lbl">PART 1: METER BILLED</div><div id="valMtr" class="stat-num" style="color:var(--purple);">0.84 A</div></div>
+      <div class="stat-box"><div class="stat-lbl">STOLEN / BYPASS CURRENT</div><div id="valLoss" class="stat-num" style="color:var(--green);">0.01 A</div></div>
+      <div class="stat-box"><div class="stat-lbl">EST. SEC-135 FINE (2X)</div><div id="valFine" class="stat-num" style="color:var(--saffron);">₹ 0</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><span>AI DISPATCH LOG & OVERRIDE</span><span>LIVE</span></div>
+    <div id="termBox" class="terminal">
+      <div>[SYS] BHARAT-GRID AI Sentinel Online.</div>
+      <div>[SYNC] Part 2 Source & Part 1 Meter Linked.</div>
+      <div>[SAFE] Zero Unaccounted Line Loss.</div>
+    </div>
+    <div class="ctrl-group">
+      <input type="password" id="otpBox" placeholder="ADMIN OTP (1234)">
+      <button class="act btn-ok" onclick="restoreGrid()">⚡ VERIFY OTP & RESTORE POWER</button>
+      <button class="act btn-warn" onclick="triggerSim('BYPASS')">SIMULATE PART-1 METER BYPASS</button>
+      <button class="act btn-warn" onclick="triggerSim('HOOK')">SIMULATE POLE LINE HOOK</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: PRIVATE CONSUMER PROFILE -->
+<div id="view-profile" class="view-section">
+  <div class="card">
+    <div class="card-hdr"><span>PRIVATE OWNER PROFILE</span><span>VERIFIED KYC</span></div>
+    <div class="profile-row"><span>Consumer Name</span><span>Aarav Patel</span></div>
+    <div class="profile-row"><span>Consumer ID</span><span>GJ-VAD-884920</span></div>
+    <div class="profile-row"><span>DISCOM Provider</span><span>MGVCL (Gujarat)</span></div>
+    <div class="profile-row"><span>Meter Hardware ID</span><span>PART-1-SMX90</span></div>
+    <div class="profile-row"><span>Sanctioned Load</span><span>4.0 kW (1-Phase)</span></div>
+    <div class="profile-row"><span>Anti-Tap Shield</span><span id="profShield" style="color:var(--green);">ACTIVE & PROTECTED</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><span>HOME ENERGY & TAMPER PROTECTION</span><span>PRIVATE ACCESS</span></div>
+    <p style="font-size:0.76rem; color:#94a3b8; margin-bottom:10px; line-height:1.5;">
+      Your private meter box continuously compares incoming pole current against your home circuit. If anyone hooks onto your line or bypasses your box, power auto-isolates and alerts your phone immediately.
+    </p>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-lbl">TODAY'S CONSUMPTION</div><div class="stat-num" style="color:var(--cyan);">6.4 kWh</div></div>
+      <div class="stat-box"><div class="stat-lbl">ESTIMATED BILL</div><div class="stat-num" style="color:var(--green);">₹ 48.50</div></div>
+      <div class="stat-box"><div class="stat-lbl">VOLTAGE STABILITY</div><div id="profVolt" class="stat-num">230 V</div></div>
+      <div class="stat-box"><div class="stat-lbl">EXTERNAL TAP LOSS</div><div id="profLoss" class="stat-num" style="color:var(--green);">0.00 A</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><span>OWNER MOBILE ALERT PREVIEW</span><span>SMS + PUSH</span></div>
+    <div style="background:#020617; border:1px solid #334155; border-radius:8px; padding:12px; font-size:0.74rem;">
+      <div style="color:var(--cyan); font-weight:bold; margin-bottom:6px;">📱 BHARAT-GRID PRIVATE APP</div>
+      <p id="ownerPhoneMsg" style="color:#cbd5e1; line-height:1.5;">
+        ✅ Home Meter GJ-VAD-884920 is secure. Zero unauthorized tapping detected on your line.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: INDIA DISCOM MAP -->
+<div id="view-india" class="view-section">
+  <div class="card" style="grid-column: span 2;">
+    <div class="card-hdr"><span>🇮🇳 INDIA NATIONAL SMART GRID VIGILANCE RADAR</span><span>LIVE TELEMETRY</span></div>
+    <div class="map-container">
+      <svg class="india-svg" viewBox="0 0 400 300">
+        <path d="M165,20 L195,35 L205,65 L235,85 L285,95 L310,115 L290,145 L255,140 L235,175 L205,220 L185,275 L165,260 L145,205 L125,165 L100,145 L115,115 L140,95 L145,55 Z"
+              fill="rgba(0, 243, 255, 0.08)" stroke="#00f3ff" stroke-width="1.5"/>
+        <line x1="170" y1="85" x2="128" y2="142" stroke="#00ff88" stroke-width="1" stroke-dasharray="4"/>
+        <line x1="128" y1="142" x2="138" y2="178" stroke="#00ff88" stroke-width="1" stroke-dasharray="4"/>
+        <line x1="170" y1="85" x2="245" y2="135" stroke="#00ff88" stroke-width="1" stroke-dasharray="4"/>
+        <line x1="138" y1="178" x2="175" y2="235" stroke="#00ff88" stroke-width="1" stroke-dasharray="4"/>
+      </svg>
+
+      <div class="city-pin" style="top:28%; left:42%;">DELHI (NDPL) • OK</div>
+      <div id="pin-vadodara" class="city-pin active-zone" style="top:47%; left:31%;">📍 VADODARA (MGVCL) • LIVE</div>
+      <div class="city-pin" style="top:59%; left:34%;">MUMBAI (BEST) • OK</div>
+      <div class="city-pin" style="top:45%; left:62%;">KOLKATA (CESC) • OK</div>
+      <div class="city-pin" style="top:77%; left:44%;">BENGALURU (BESCOM) • OK</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><span>DISCOM VIGILANCE DISPATCH</span><span>AUTO-GPS</span></div>
+    <div class="profile-row"><span>Active Region</span><span>Western Grid (Gujarat)</span></div>
+    <div class="profile-row"><span>Substation ID</span><span>TX-GJ01 (Vadodara)</span></div>
+    <div class="profile-row"><span>Pole Radar ID</span><span>POLE-GJ-101</span></div>
+    <div class="profile-row"><span>GPS Coordinates</span><span>22.3072° N, 73.1812° E</span></div>
+    <div class="profile-row"><span>Nearest Squad Van</span><span>VAN-04 (1.2 km away)</span></div>
+    <div class="profile-row"><span>Legal Action</span><span>Sec 135 Electricity Act</span></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('waveCanvas');
+const ctx = canvas.getContext('2d');
+let histSrc = new Array(60).fill(0.85);
+let histMtr = new Array(60).fill(0.84);
+let isLocked = false;
+let simType = "NONE";
+let lastLocked = false;
+
+function switchView(name, btn) {
+  document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function playSiren() {
+  try {
+    const a = new (window.AudioContext || window.webkitAudioContext)();
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(860, a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(420, a.currentTime + 0.35);
+    g.gain.setValueAtTime(0.14, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, a.currentTime + 0.35);
+    o.connect(g); g.connect(a.destination);
+    o.start(); o.stop(a.currentTime + 0.35);
+  } catch(e) {}
+}
+
+function logMsg(msg, isErr=false) {
+  const b = document.getElementById('termBox');
+  b.innerHTML += `<div class="${isErr?'err':''}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+  b.scrollTop = b.scrollHeight;
+}
+
+function drawGraph() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(30, 41, 59, 0.7)';
+  ctx.lineWidth = 1;
+  for(let y=25; y<canvas.height; y+=36) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+
+  const drawLine = (arr, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.shadowColor = color; ctx.shadowBlur = 8;
+    ctx.beginPath();
+    arr.forEach((v, i) => {
+      const x = (i / (arr.length - 1)) * canvas.width;
+      const y = canvas.height - 16 - Math.min(v * 52, canvas.height - 30);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke(); ctx.shadowBlur = 0;
+  };
+  drawLine(histSrc, '#00f3ff');
+  drawLine(histMtr, '#b537f2');
+}
+
+function updateUI(d) {
+  document.getElementById('valSrc').innerText  = d.src.toFixed(2) + ' A';
+  document.getElementById('valMtr').innerText  = d.mtr.toFixed(2) + ' A';
+  document.getElementById('valLoss').innerText = d.loss.toFixed(2) + ' A';
+  document.getElementById('profLoss').innerText = d.loss.toFixed(2) + ' A';
+  document.getElementById('profVolt').innerText = d.volt.toFixed(0) + ' V';
+
+  let fineINR = d.locked ? Math.round(d.loss * 230 * 0.24 * 30 * 14) : 0;
+  document.getElementById('valFine').innerText = '₹ ' + fineINR.toLocaleString('en-IN');
+
+  histSrc.push(d.src); histSrc.shift();
+  histMtr.push(d.mtr); histMtr.shift();
+  drawGraph();
+
+  const pill = document.getElementById('sysStatus');
+  const radar = document.getElementById('radarBox');
+  const w1 = document.getElementById('wire1'), w2 = document.getElementById('wire2');
+  const nSrc = document.getElementById('nodeSrc'), nMtr = document.getElementById('nodeMtr');
+  const banner = document.getElementById('alertBanner');
+  const vadPin = document.getElementById('pin-vadodara');
+  document.querySelectorAll('.blip').forEach(b => b.classList.remove('threat'));
+
+  if (d.locked) {
+    playSiren();
+    pill.innerText = '🚨 THEFT ISOLATED // LOCKDOWN';
+    pill.className = 'status-pill danger';
+    radar.classList.add('danger');
+    w1.classList.add('severed'); w2.classList.add('severed');
+    nSrc.classList.add('tripped'); nMtr.classList.add('tripped');
+    banner.classList.add('active');
+    vadPin.className = 'city-pin theft-zone';
+    vadPin.innerText = '🚨 VADODARA • THEFT ALERT!';
+
+    document.getElementById('valLoss').style.color = 'var(--red)';
+    document.getElementById('profLoss').style.color = 'var(--red)';
+    document.getElementById('profShield').innerText = 'TRIPPED (THEFT BLOCKED)';
+    document.getElementById('profShield').style.color = 'var(--red)';
+    document.getElementById('aiConf').innerText = '99.4% THEFT CONFIRMED';
+    document.getElementById('aiConf').style.color = 'var(--red)';
+    document.getElementById('alertText').innerText = `${d.type} AT ${d.loc} (${d.loss.toFixed(2)}A). DISCOM VAN-04 & OWNER NOTIFIED.`;
+    document.getElementById('ownerPhoneMsg').innerHTML = `<span style="color:var(--red);font-weight:bold;">🚨 EMERGENCY ALERT:</span> Unauthorized load (${d.loss.toFixed(2)}A) detected at ${d.loc}. Power auto-cut to protect your home!`;
+
+    if (d.type.includes('BYPASS')) document.getElementById('b-mtr').classList.add('threat');
+    else document.getElementById('b-tap').classList.add('threat');
+
+    if (!lastLocked) {
+      logMsg(`CRITICAL: ${d.type} AT ${d.loc} (${d.loss.toFixed(2)}A)`, true);
+      logMsg(`DISCOM MGVCL & OWNER SMS DISPATCHED.`, true);
+    }
+  } else {
+    pill.innerText = '● GRID ARMED & SECURE';
+    pill.className = 'status-pill';
+    radar.classList.remove('danger');
+    w1.classList.remove('severed'); w2.classList.remove('severed');
+    nSrc.classList.remove('tripped'); nMtr.classList.remove('tripped');
+    banner.classList.remove('active');
+    vadPin.className = 'city-pin active-zone';
+    vadPin.innerText = '📍 VADODARA (MGVCL) • LIVE';
+
+    document.getElementById('valLoss').style.color = 'var(--green)';
+    document.getElementById('profLoss').style.color = 'var(--green)';
+    document.getElementById('profShield').innerText = 'ACTIVE & PROTECTED';
+    document.getElementById('profShield').style.color = 'var(--green)';
+    document.getElementById('aiConf').innerText = '99.8% BALANCED';
+    document.getElementById('aiConf').style.color = 'var(--cyan)';
+    document.getElementById('ownerPhoneMsg').innerText = '✅ Home Meter GJ-VAD-884920 is secure. Zero unauthorized tapping detected on your line.';
+
+    if (lastLocked) logMsg('ADMIN OTP VERIFIED. POWER RESTORED.');
+  }
+  lastLocked = d.locked;
+}
+
+function pollData() {
+  fetch('/telemetry')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('hwLinkTag').innerText = 'ESP32 HARDWARE LIVE';
+      updateUI(d);
+    })
+    .catch(() => {
+      document.getElementById('hwLinkTag').innerText = 'EXPO SIMULATION MODE';
+      let jitter = (Math.random() - 0.5) * 0.05;
+      if (!isLocked) {
+        updateUI({ src: 0.86 + jitter, mtr: 0.85 + jitter, loss: 0.01, volt: 230, locked: false, type: 'NONE', loc: 'NONE' });
+      } else {
+        let s = simType === 'BYPASS' ? 1.95 : 2.25;
+        let m = simType === 'BYPASS' ? 0.15 : 0.70;
+        let l = simType === 'BYPASS' ? 'PART-1 METER BOX' : 'POLE-GJ-101 TAP';
+        let v = simType === 'BYPASS' ? 225 : 182;
+        updateUI({ src: s + jitter, mtr: m, loss: s - m, volt: v, locked: true, type: simType, loc: l });
+      }
+    });
+}
+
+function triggerSim(type) {
+  fetch('/sim?mode=' + type).catch(() => {});
+  isLocked = true; simType = type; pollData();
+}
+
+function restoreGrid() {
+  const otp = document.getElementById('otpBox').value;
+  fetch('/reset?otp=' + otp).catch(() => {});
+  if (otp === '1234') {
+    isLocked = false; simType = 'NONE';
+    document.getElementById('otpBox').value = '';
+    pollData();
+  } else {
+    logMsg('ACCESS DENIED: INVALID ADMIN OTP!', true);
+  }
+}
+
+setInterval(pollData, 650);
+</script>
+</body>
+</html>
